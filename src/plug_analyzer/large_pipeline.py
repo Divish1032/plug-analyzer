@@ -992,6 +992,9 @@ def _bottleneck_clearance_disk(
         labels.flush()
         threshold_mask.flush()
 
+    # ``Connection.__exit__`` commits or rolls back, but does not close the
+    # database. Explicit closure is required before deleting it on Windows.
+    connection.close()
     # Close mappings before unlinking so this path is valid on Windows too.
     for mapping in (labels, threshold_mask, distances, open_mask):
         _close_memmap(mapping)
