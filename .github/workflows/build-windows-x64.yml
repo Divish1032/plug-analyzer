@@ -1,0 +1,67 @@
+name: Build Windows x64 installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build unsigned Windows x64 installer
+    runs-on: windows-2022
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Read application version
+        id: version
+        shell: pwsh
+        run: |
+          $version = python -c "import pathlib, tomllib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])"
+          "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Validate release tag
+        if: github.event_name == 'push'
+        shell: pwsh
+        run: |
+          $expectedTag = "v${{ steps.version.outputs.value }}"
+          if ("${{ github.ref_name }}" -ne $expectedTag) {
+            throw "Release tags must match the application version exactly. Expected $expectedTag."
+          }
+
+      - name: Install locked build dependencies
+        run: uv sync --frozen --extra dev --extra packaging
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build and verify release
+        shell: pwsh
+        run: .\scripts\build_windows_x64.ps1 -Clean -ProtocolVersion candidate-v1-unlocked
+
+      - name: Upload SME release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Plug-Analyzer-${{ steps.version.outputs.value }}-windows-x64
+          path: dist/release/${{ steps.version.outputs.value }}/windows-x64/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
