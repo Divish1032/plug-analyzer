@@ -15,7 +15,9 @@ jobs:
   build:
     name: Build unsigned Windows x64 installer
     runs-on: windows-2022
-    timeout-minutes: 60
+    # Nuitka compiles the PySide6/SciPy dependency closure from C sources on a
+    # fresh hosted runner; a 60-minute cap can interrupt a healthy build.
+    timeout-minutes: 180
 
     steps:
       - name: Check out source
