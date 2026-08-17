@@ -40,7 +40,7 @@ jobs:
           "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Validate release tag
-        if: github.event_name == 'push'
+        if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
           $expectedTag = "v${{ steps.version.outputs.value }}"
