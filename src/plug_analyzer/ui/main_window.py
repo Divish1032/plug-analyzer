@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLayout,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
@@ -295,6 +296,12 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _scroll_page(content: QWidget) -> QScrollArea:
+        # Let word-wrapped page content shrink to the viewport instead of
+        # inheriting the widest child minimum size on Windows' larger fonts.
+        content.setMinimumWidth(0)
+        content.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        if layout := content.layout():
+            layout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -505,7 +512,14 @@ class MainWindow(QMainWindow):
         parameter_scroll.setFrameShape(QFrame.Shape.NoFrame)
         parameter_scroll.setObjectName("analysisParameterScroll")
         parameter_card, parameter_layout = self._card()
+        parameter_card.setMinimumWidth(0)
+        parameter_card.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        parameter_layout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         self.parameter_editor = AnalysisParameterEditor()
+        self.parameter_editor.setMinimumWidth(0)
+        self.parameter_editor.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred
+        )
         parameter_layout.addWidget(self.parameter_editor)
 
         run_group = QGroupBox("Run analysis")

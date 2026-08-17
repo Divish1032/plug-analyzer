@@ -356,7 +356,8 @@ def prepare_source_cache(
     return ImportResult(
         sample_id=identifier,
         metadata=metadata,
-        cache_relative_path=str(relative_cache),
+        # Persist project-relative paths with a platform-independent separator.
+        cache_relative_path=relative_cache.as_posix(),
         cache_verification_errors=verification.errors,
     )
 

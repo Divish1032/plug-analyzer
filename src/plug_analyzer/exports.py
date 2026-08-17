@@ -148,7 +148,10 @@ def _atomic_numpy(path: Path, array: Any) -> None:
             destination.flush()
         finally:
             del destination
-        with temporary.open("rb") as handle:
+        # Windows requires a write-capable descriptor for fsync. The temporary
+        # file is already complete; reopening read/write only establishes that
+        # descriptor before the atomic replace below.
+        with temporary.open("r+b") as handle:
             # Ensure the completed temporary is durable before atomic rename.
             os.fsync(handle.fileno())
         os.replace(temporary, path)

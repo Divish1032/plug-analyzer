@@ -418,7 +418,7 @@ def _plane_offset(
         values[cursor : cursor + selected.size] = selected
         cursor += selected.size
     offset = float(np.median(values, overwrite_input=True))
-    del values
+    _close_memmap(values)
     path.unlink(missing_ok=True)
     return offset, count
 
@@ -480,7 +480,7 @@ def _write_correction_and_saturation(
         path=scratch / "raw-mad-values.bin",
     )
     _, raw_sigma = _median_mad(values)
-    del values
+    _close_memmap(values)
     (scratch / "raw-mad-values.bin").unlink(missing_ok=True)
     return offsets, sat_counts, valid_counts, raw_sigma
 
@@ -544,7 +544,7 @@ def _filtered_sigma(
         path=scratch / "filtered-mad-values.bin",
     )
     _, sigma = _median_mad(values)
-    del values
+    _close_memmap(values)
     (scratch / "filtered-mad-values.bin").unlink(missing_ok=True)
     return sigma
 
@@ -639,9 +639,16 @@ def _segment_to_zarr(
         for region in _regions(shape, chunks):
             _check_cancel(cancelled)
             target[region] = keep_lookup[np.asarray(labels[region])]
-        del seeded, volumes, keep_lookup
+        # ``del`` alone leaves an open mapping on Windows. Close these
+        # explicitly before removing the scratch files below.
+        del local_labels, local_seeds
+        _close_memmap(seeded)
+        _close_memmap(volumes)
+        _close_memmap(keep_lookup)
 
-    del candidate, seeds, labels
+    _close_memmap(candidate)
+    _close_memmap(seeds)
+    _close_memmap(labels)
     for name in (
         "candidate.bin",
         "seeds.bin",
@@ -856,9 +863,9 @@ def _connectivity(
         outcomes[connectivity] = bool(
             np.intersect1d(inlet[inlet != 0], outlet[outlet != 0], assume_unique=True).size
         )
-        del labels
+        _close_memmap(labels)
         (scratch / "open-labels.bin").unlink(missing_ok=True)
-    del open_mask
+    _close_memmap(open_mask)
     (scratch / "open.bin").unlink(missing_ok=True)
     return OpenPathResult(
         connected_6=outcomes[6],
@@ -899,7 +906,7 @@ def _bottleneck_clearance_disk(
     for region in _regions(shape, chunks):
         path_output[region] = False
     if inlet_count == 0 or outlet_count == 0:
-        del open_mask
+        _close_memmap(open_mask)
         (scratch / "clearance-open.bin").unlink(missing_ok=True)
         return BottleneckClearance(
             connected=False,

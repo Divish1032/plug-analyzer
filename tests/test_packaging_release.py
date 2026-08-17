@@ -14,11 +14,20 @@ with (PROJECT_ROOT / "pyproject.toml").open("rb") as _pyproject_stream:
     APP_VERSION = str(tomllib.load(_pyproject_stream)["project"]["version"])
 
 
+def _assert_posix_shell_syntax(script_path: Path) -> None:
+    """Validate macOS shell scripts where a native POSIX shell is available."""
+
+    # Windows' ``bash.exe`` can be an unconfigured WSL launcher rather than a
+    # shell. These scripts are exercised by the native macOS release job.
+    if sys.platform != "win32":
+        subprocess.run(["bash", "-n", str(script_path)], check=True)
+
+
 def test_macos_build_script_is_native_standalone_and_safely_scoped() -> None:
     script_path = SCRIPTS / "build_macos_arm64.sh"
     script = script_path.read_text(encoding="utf-8")
 
-    subprocess.run(["bash", "-n", str(script_path)], check=True)
+    _assert_posix_shell_syntax(script_path)
     assert '"$(uname -s)" == "Darwin"' in script
     assert '"$(uname -m)" == "arm64"' in script
     assert "--standalone" in script
@@ -119,7 +128,7 @@ def test_makefile_keeps_build_and_deployment_separate() -> None:
     mac_deploy = (SCRIPTS / "deploy_macos_arm64.sh").read_text(encoding="utf-8")
     windows_deploy = (SCRIPTS / "deploy_windows_x64.ps1").read_text(encoding="utf-8")
 
-    subprocess.run(["bash", "-n", str(SCRIPTS / "deploy_macos_arm64.sh")], check=True)
+    _assert_posix_shell_syntax(SCRIPTS / "deploy_macos_arm64.sh")
     assert ".DEFAULT_GOAL := help" in makefile
     assert "build: dependencies" not in makefile
     assert "build_macos_arm64.sh --clean" in makefile
