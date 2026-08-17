@@ -3,6 +3,8 @@ name: Build Windows x64 installer
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
