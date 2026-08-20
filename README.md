@@ -37,7 +37,8 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) before using results with an 
 Requirements: Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-cd /Users/itachi/Documents/Github/experiments/experiment1/plug-analyzer-prototype
+git clone https://github.com/Divish1032/plug-analyzer.git
+cd plug-analyzer
 uv sync --frozen --extra dev
 uv run plug-analyzer-gui
 ```
